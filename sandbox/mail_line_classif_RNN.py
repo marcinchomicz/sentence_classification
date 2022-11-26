@@ -117,6 +117,7 @@ for vocab_size, hidden_size, variant in tqdm(scope, total=len(scope)):
     mp['vocab_size'] = vocab_size
     mp['hidden_size'] = hidden_size
     mp['rnn_variant'] = variant
+    mp['split'] = 'line_based'
 
     tf.keras.backend.clear_session()
     vect_layer = tf.keras.layers.TextVectorization(max_tokens=mp['vocab_size'],
