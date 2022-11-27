@@ -19,7 +19,7 @@ for m in [pd, tf, tfa, mlflow]:
     print(f"{m.__name__:15s}\t{m.__version__}")
 
 OUTPUTPATH = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/sandbox/"
-DATAPATH = "/mnt/workdata/_WORK_/mail_zonning/repos/Quagga/Datasets/Enron/annotated_lines/"
+DATAPATH = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/dataset/enron_files_annotated/"
 FILESTORE = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/tmp/"
 MLFLOW_DIR = "file:///home/chomima5/mlruns/"
 def prepare_dataset(datapath:str):
