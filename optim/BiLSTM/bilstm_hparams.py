@@ -141,6 +141,10 @@ model=model_definition(vectorization_layer, model_params, label_count)
 model.compile(optimizer=tf.keras.optimizers.Adam(model_params['initial_lr']),
               loss=tf.keras.losses.SparseCategoricalCrossentropy(),
               metrics=['accuracy'])
+
+def report_epoch_progress(epoch, logs):
+    mlflow.log_metrics(logs)
+
 with mlflow.start_run(experiment_id=eid, nested=False, tags={'master':True} ) as master_run:
     master_results={}
     mlflow.log_params(params=model_params)
@@ -179,7 +183,9 @@ with mlflow.start_run(experiment_id=eid, nested=False, tags={'master':True} ) as
                                                                verbose=1),
                           tf.keras.callbacks.EarlyStopping(min_delta=1e-4,
                                                            patience=10,
-                                                           restore_best_weights=True)])
+                                                           restore_best_weights=True),
+                          tf.keras.callbacks.LambdaCallback(on_epoch_end=report_epoch_progress)
+                      ])
             eval_loss, eval_acc = model.evaluate(test_data, test_labels)
             y_pred_ = model.predict(test_data)
             y_true = test_labels
