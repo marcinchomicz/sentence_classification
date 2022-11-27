@@ -18,9 +18,10 @@ import nni
 for m in [pd, tf, tfa, mlflow]:
     print(f"{m.__name__:15s}\t{m.__version__}")
 
-OUTPUTPATH = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/sandbox"
+OUTPUTPATH = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/sandbox/"
 DATAPATH = "/mnt/workdata/_WORK_/mail_zonning/repos/Quagga/Datasets/Enron/annotated_lines/"
-
+FILESTORE = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/tmp/"
+MLFLOW_DIR = "file:///home/chomima5/mlruns/"
 def prepare_dataset(datapath:str):
 
     def extract_text(text, flags: dict):
@@ -62,7 +63,7 @@ def split_dataset(data: pd.DataFrame):
 df=prepare_dataset(DATAPATH)
 train_data, train_labels, test_data, test_labels = split_dataset(df)
 
-mlflow.set_tracking_uri("file:///home/chomima5/mlruns")
+mlflow.set_tracking_uri(MLFLOW_DIR)
 ENAME = 'ParamSearch_BiLSTM'
 
 try:
@@ -152,7 +153,7 @@ with mlflow.start_run(experiment_id=eid, nested=False, tags={'master':True} ) as
     mlflow.log_text(inspect.getsource(model_definition), 'model_building_method.txt')
     mlflow.log_dict(model_params, 'model_params.txt')
     mlflow.log_dict({'cuda_device': os.environ['CUDA_VISIBLE_DEVICES']}, 'enironment_settings.txt')
-    diagram_filename = f"/mnt/workdata/_WORK_/mail_zonning/mail_zoning/tmp/diagram_{master_run.data.tags['mlflow.runName']}.png"
+    diagram_filename = f"{FILESTORE}/diagram_{master_run.data.tags['mlflow.runName']}.png"
     img = tf.keras.utils.plot_model(model, to_file=diagram_filename, show_shapes=True, show_dtype=True,
                                     show_layer_names=True, show_layer_activations=True)
     mlflow.log_artifact(local_path=diagram_filename)
@@ -167,7 +168,7 @@ with mlflow.start_run(experiment_id=eid, nested=False, tags={'master':True} ) as
             mlflow.log_text(inspect.getsource(model_definition), 'model_building_method.txt')
             mlflow.log_dict(model_params, 'model_params.txt')
             mlflow.log_dict({'cuda_device': os.environ['CUDA_VISIBLE_DEVICES']},'enironment_settings.txt')
-            diagram_filename=f"/mnt/workdata/_WORK_/mail_zonning/mail_zoning/tmp/diagram_{run.data.tags['mlflow.runName']}.png"
+            diagram_filename = f"{FILESTORE}diagram_{run.data.tags['mlflow.runName']}.png"
             img=tf.keras.utils.plot_model(model, to_file=diagram_filename, show_shapes=True, show_dtype=True,
                                       show_layer_names=True, show_layer_activations=True)
             mlflow.log_artifact(local_path=diagram_filename)
