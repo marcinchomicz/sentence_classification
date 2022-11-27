@@ -121,7 +121,7 @@ mp_BiLSTM = {
     'lr_reduction_factor': lr_reduction_factor,
     'rnn_variant': 'BiLSTM',
     'max_epochs': 100,
-    'initial_lr':1e-3
+    'initial_lr': initial_lr
 }
 
 model_params = mp_BiLSTM
