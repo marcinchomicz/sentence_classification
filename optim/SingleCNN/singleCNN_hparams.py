@@ -23,6 +23,8 @@ OUTPUTPATH = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/sandbox/"
 DATAPATH = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/dataset/enron_files_annotated/"
 FILESTORE = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/tmp/"
 MLFLOW_DIR = "file:///home/chomima5/mlruns/"
+ENAME = 'PS_SingleCNN'
+
 
 def prepare_dataset(datapath: str):
     def extract_text(text, flags: dict):
@@ -66,7 +68,7 @@ df = prepare_dataset(DATAPATH)
 train_data, train_labels, test_data, test_labels = split_dataset(df)
 
 mlflow.set_tracking_uri(MLFLOW_DIR)
-ENAME = 'ParamSearch_SingleCNN'
+
 
 try:
     eid = mlflow.get_experiment_by_name(ENAME).experiment_id
@@ -143,6 +145,47 @@ mp_SingleCNN = {
     'initial_lr': initial_lr
 }
 
+
+def report_epoch_progress(epoch, logs):
+    mlflow.log_metrics(logs)
+
+def report_parameters(model_params:dict, model, model_definition):
+    mlflow.log_params(params=model_params)
+    mlflow.log_dict(model_params, 'model_params.txt')
+    mlflow.log_text(json.dumps(json.loads(model.to_json()), indent=3), 'model_schema.txt')
+    mlflow.log_text(inspect.getsource(model_definition), 'model_building_method.txt')
+    if 'CUDA_VISIBLE_DEVICES' in os.environ.keys():
+        mlflow.log_dict({'cuda_device': os.environ['CUDA_VISIBLE_DEVICES']}, 'enironment_settings.txt')
+    diagram_filename = f"{FILESTORE}/diagram_{master_run.data.tags['mlflow.runName']}.png"
+    img = tf.keras.utils.plot_model(model, to_file=diagram_filename, show_shapes=True, show_dtype=True,
+                                    show_layer_names=True, show_layer_activations=True)
+    mlflow.log_artifact(local_path=diagram_filename)
+    os.remove(diagram_filename)
+
+def report_metrics(y_true, y_pred):
+    final_metrics = {
+        'Loss_eval': eval_loss,
+        'Accuracy': accuracy_score(y_true, y_pred),
+        'Precision': precision_score(y_true, y_pred, average='weighted'),
+        'Recall': recall_score(y_true, y_pred, average='weighted'),
+        'F1-score': f1_score(y_true, y_pred, average='weighted')
+    }
+    mlflow.log_metrics(final_metrics)
+    mlflow.log_dict(classification_report(y_true, y_pred, output_dict=True), 'classification_report.txt')
+    return final_metrics
+
+def report_master_results(master_results:dict):
+    mlflow.log_dict(master_results, 'iteration_results.txt')
+    master_results_ = pd.DataFrame(master_results).mean(axis=1).to_dict()
+    mean_vals = pd.DataFrame(master_results).mean(axis=1)
+    std_vals = pd.DataFrame(master_results).std(axis=1)
+    mean_vals.index = [f"{c}_mean" for c in mean_vals.index]
+    std_vals.index = [f"{c}_std" for c in std_vals.index]
+    _ = {**mean_vals.to_dict(), **std_vals.to_dict()}
+    mlflow.log_metrics(_)
+    return master_results_
+
+
 model_params = mp_SingleCNN
 model_definition = define_model_SingleCNN
 
@@ -161,38 +204,16 @@ model.compile(optimizer=tf.keras.optimizers.Adam(model_params['initial_lr']),
               loss=tf.keras.losses.SparseCategoricalCrossentropy(),
               metrics=['accuracy'])
 
-def report_epoch_progress(epoch, logs):
-    mlflow.log_metrics(logs)
 
 with mlflow.start_run(experiment_id=eid, nested=False, tags={'master': True}) as master_run:
     master_results = {}
-    mlflow.log_params(params=model_params)
-    mlflow.log_text(json.dumps(json.loads(model.to_json()), indent=3), 'model_schema.txt')
-    mlflow.log_text(inspect.getsource(model_definition), 'model_building_method.txt')
-    mlflow.log_dict(model_params, 'model_params.txt')
-    mlflow.log_dict({'cuda_device': os.environ['CUDA_VISIBLE_DEVICES']}, 'enironment_settings.txt')
-    diagram_filename = f"{FILESTORE}/diagram_{master_run.data.tags['mlflow.runName']}.png"
-    img = tf.keras.utils.plot_model(model, to_file=diagram_filename, show_shapes=True, show_dtype=True,
-                                    show_layer_names=True, show_layer_activations=True)
-    mlflow.log_artifact(local_path=diagram_filename)
-    os.remove(diagram_filename)
-
+    report_parameters(model_params, model, model_definition)
     for i in range(0, 3):
         tf.keras.backend.clear_session()
         with mlflow.start_run(experiment_id=eid,
                               run_name=f"{master_run.data.tags['mlflow.runName']}-{i}", nested=True,
                               tags={'master': False}) as run:
-            mlflow.log_params(params=model_params)
-            mlflow.log_text(json.dumps(json.loads(model.to_json()), indent=3), 'model_schema')
-            mlflow.log_text(inspect.getsource(model_definition), 'model_building_method.txt')
-            mlflow.log_dict(model_params, 'model_params.txt')
-            mlflow.log_dict({'cuda_device': os.environ['CUDA_VISIBLE_DEVICES']}, 'enironment_settings.txt')
-            diagram_filename = f"{FILESTORE}diagram_{run.data.tags['mlflow.runName']}.png"
-            img = tf.keras.utils.plot_model(model, to_file=diagram_filename, show_shapes=True, show_dtype=True,
-                                            show_layer_names=True, show_layer_activations=True)
-            mlflow.log_artifact(local_path=diagram_filename)
-            os.remove(diagram_filename)
-
+            report_parameters(model_params, model, model_definition)
             model.fit(x=train_data,
                       y=train_labels,
                       epochs=model_params['max_epochs'],
@@ -210,31 +231,14 @@ with mlflow.start_run(experiment_id=eid, nested=False, tags={'master': True}) as
             y_pred_ = model.predict(test_data)
             y_true = test_labels
             y_pred = np.argmax(y_pred_, axis=1)
-            final_metrics = {
-                'Loss_eval': eval_loss,
-                'Accuracy': accuracy_score(y_true, y_pred),
-                'Precision': precision_score(y_true, y_pred, average='weighted'),
-                'Recall': recall_score(y_true, y_pred, average='weighted'),
-                'F1-score': f1_score(y_true, y_pred, average='weighted')
-            }
-            mlflow.log_metrics(final_metrics)
-            mlflow.log_dict(classification_report(y_true, y_pred, output_dict=True), 'classification_report.txt')
-            master_results[i] = final_metrics
+            master_results[i] = report_metrics(y_true, y_pred)
             final_metrics_ = {
                 'Loss_eval': eval_loss,
                 'default': accuracy_score(y_true, y_pred),
             }
-            """@nni.report_intermediate_result(final_metrics)"""
+            """@nni.report_intermediate_result(master_results[i])"""
 
-    mlflow.log_dict(master_results, 'iteration_results.txt')
-    master_results_ = pd.DataFrame(master_results).mean(axis=1).to_dict()
-    mean_vals = pd.DataFrame(master_results).mean(axis=1)
-    std_vals = pd.DataFrame(master_results).std(axis=1)
-    mean_vals.index = [f"{c}_mean" for c in mean_vals.index]
-    std_vals.index = [f"{c}_std" for c in std_vals.index]
-    _ = {**mean_vals.to_dict(), **std_vals.to_dict()}
-    mlflow.log_metrics(_)
-    mlflow.log_metrics(_)
+    master_results_=report_master_results(master_results)
     master_results_ = {
         'default': master_results_['Accuracy'],
         'loss': master_results_['Loss_eval']
