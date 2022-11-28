@@ -1,0 +1,16 @@
+authorName: mchomicz
+experimentName: context_bilstm_cnn_hparams
+trialConcurrency: 1
+maxExecDuration: 12h
+maxTrialNum: 500
+trainingServicePlatform: local
+useAnnotation: true
+tuner:
+  choice: TPE
+  builtinTunerName: TPE
+  classArgs:
+    optimize_mode: maximize
+trial:
+  command: python context_bilstm_cnn_hparams.py
+  codeDir: .
+  gpuNum: 0
