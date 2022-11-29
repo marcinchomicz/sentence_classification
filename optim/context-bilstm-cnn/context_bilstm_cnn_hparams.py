@@ -1,6 +1,6 @@
 import os
 
-os.environ['CUDA_VISIBLE_DEVICES'] = ""
+# os.environ['CUDA_VISIBLE_DEVICES'] = ""
 os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = "true"
 import numpy as np
 import pandas as pd
@@ -186,7 +186,7 @@ batch_size = 64
 mp_context_bilstm_cnn = {
     'vocab_size': 8000,
     'output_sequence_length': 45,
-    'embedding_dimension': int(embedding_dimension),
+
     'dense_0_pred_size': int(dense_0_pred_size),
     'drop_pred_rate': drop_pred_rate,
     'dense_1_pred_size': int(dense_1_pred_size),
