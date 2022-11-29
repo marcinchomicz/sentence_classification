@@ -236,7 +236,7 @@ model_definition = define_model_bilstm
 RANDOM_STATES = [123, 12, 42]
 with mlflow.start_run(experiment_id=eid, nested=False, tags={'master': True}) as master_run:
     master_results = {}
-    for k in [1,2]:
+    for k in [1]:
         for i in range(0, 3):
             rs = RANDOM_STATES[i]
 
