@@ -5,6 +5,10 @@ maxExecDuration: 12h
 maxTrialNum: 500
 trainingServicePlatform: local
 useAnnotation: true
+localConfig:
+  useActiveGpu: true
+  maxTrialNumPerGpu: 5
+  gpuIndices: "0"
 tuner:
   choice: TPE
   builtinTunerName: TPE
@@ -13,4 +17,4 @@ tuner:
 trial:
   command: python context_bilstm_cnn_hparams.py
   codeDir: .
-  gpuNum: 0
+  gpuNum: 1
