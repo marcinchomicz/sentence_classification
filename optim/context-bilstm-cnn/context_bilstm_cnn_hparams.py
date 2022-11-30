@@ -1,6 +1,6 @@
 import os
 
-# os.environ['CUDA_VISIBLE_DEVICES'] = ""
+os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = "true"
 import numpy as np
 import pandas as pd
@@ -22,7 +22,7 @@ OUTPUTPATH = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/sandbox/"
 DATAPATH = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/dataset/enron_files_annotated/"
 FILESTORE = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/tmp/"
 MLFLOW_DIR = "file:///home/chomima5/mlruns/"
-ENAME = 'PS_Context-BiLSTM-CNN'
+ENAME = 'PS_Context-BiLSTM-CNN-2'
 
 BOM_SIGNAL = 'the start of the email signal, no lines before'
 EOM_SIGNAL = 'the end of the email signal, no lines after'
@@ -186,7 +186,7 @@ batch_size = 64
 mp_context_bilstm_cnn = {
     'vocab_size': 8000,
     'output_sequence_length': 45,
-
+    'embedding_dimension':int(embedding_dimension),
     'dense_0_pred_size': int(dense_0_pred_size),
     'drop_pred_rate': drop_pred_rate,
     'dense_1_pred_size': int(dense_1_pred_size),
