@@ -1,6 +1,6 @@
 import os
 
-os.environ['CUDA_VISIBLE_DEVICES'] = "0"
+os.environ['CUDA_VISIBLE_DEVICES'] = ""
 os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = "true"
 import numpy as np
 from numpy.lib.stride_tricks import sliding_window_view
@@ -218,7 +218,10 @@ model_params = {
     'initial_lr': initial_lr,
     'lr_reduction_factor':lr_reduction_factor,
     'batch_size': int(batch_size),
-    'max_epochs': 15
+    'max_epochs': 15,
+
+    'early_stop_threshold_patience':6,
+    'early_stop_threshold_value':0.95
 
 }
 
@@ -266,11 +269,11 @@ with mlflow.start_run(experiment_id=eid, nested=False, tags={'master': True}) as
                                                                    patience=3,
                                                                    verbose=1),
                               tf.keras.callbacks.EarlyStopping(min_delta=1e-4,
-                                                               patience=6,
+                                                               patience=5,
                                                                restore_best_weights=True),
-                              tf.keras.callbacks.EarlyStopping(baseline=0.94,
+                              tf.keras.callbacks.EarlyStopping(baseline=model_params['early_stop_threshold_value'],
                                                                monitor='val_accuracy',
-                                                               patience=4,
+                                                               patience=model_params['early_stop_threshold_patience'],
                                                                restore_best_weights=True),
                               tf.keras.callbacks.LambdaCallback(on_epoch_end=report_epoch_progress)
                           ])
@@ -285,6 +288,8 @@ with mlflow.start_run(experiment_id=eid, nested=False, tags={'master': True}) as
                     'default': accuracy_score(y_true, y_pred),
                 }
                 """@nni.report_intermediate_result(master_results[i])"""
+                if final_metrics_['default']<model_params['early_stop_threshold_value']:
+                    break
     report_parameters(model_params, model, model_definition,
                       master_run)  # model from the last iteration, params are shared among all of them
     master_results_ = report_master_results(master_results)
