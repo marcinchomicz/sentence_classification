@@ -1,6 +1,6 @@
 import os
 
-os.environ['CUDA_VISIBLE_DEVICES'] = ""
+os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = "true"
 import numpy as np
 from numpy.lib.stride_tricks import sliding_window_view
@@ -29,7 +29,7 @@ OUTPUTPATH = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/sandbox/"
 DATAPATH = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/dataset/enron_files_annotated/"
 FILESTORE = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/tmp/"
 MLFLOW_DIR = "file:///home/chomima5/mlruns/"
-ENAME = 'SEQUENCED_3_BiLSTM'
+ENAME = 'SEQUENCED_3_BiLSTM_2'
 
 BOM_SIGNAL = 'the start of the email signal, no lines before'
 EOM_SIGNAL = 'the end of the email signal, no lines after'
@@ -115,11 +115,10 @@ def define_model_bilstm(model_params: dict):
                model_params['output_sequence_length'],),
         dtype=tf.int32, name='input_block')
 
-    x = tf.keras.layers.TimeDistributed(
-        layer=tf.keras.layers.Embedding(input_dim=len(vectorizer.get_vocabulary()),
+    x = layer=tf.keras.layers.Embedding(input_dim=len(vectorizer.get_vocabulary()),
                                         output_dim=model_params['embedding_dimension'],
                                         mask_zero=True,
-                                        name='embed'))(input_block)
+                                        name='embed')(input_block)
 
     x = tf.keras.layers.TimeDistributed(
         tf.keras.layers.Bidirectional(
@@ -201,8 +200,8 @@ dense_1_units = 128
 lr_reduction_factor = 0.1
 '''@nni.variable(nni.uniform(5e-5, 1e-3), name=initial_lr)'''
 initial_lr = 0.0005
-'''@nni.variable(nni.choice(16,32,64), name=batch_size)'''
-batch_size = 64
+'''@nni.variable(nni.choice(8,16,32,64,128,256), name=batch_size)'''
+batch_size = 512
 
 model_params = {
     'vocab_size': 8000,
@@ -287,7 +286,7 @@ with mlflow.start_run(experiment_id=eid, nested=False, tags={'master': True}) as
                     'Loss_eval': eval_loss,
                     'default': accuracy_score(y_true, y_pred),
                 }
-                """@nni.report_intermediate_result(master_results[i])"""
+                """@nni.report_intermediate_result(final_metrics_)"""
                 if final_metrics_['default']<model_params['early_stop_threshold_value']:
                     break
     report_parameters(model_params, model, model_definition,
