@@ -1,0 +1,61 @@
+def define_model_context_bilstm_cnn(adapted_text_vectorization_layer, model_params: dict, label_count: int):
+    tf.keras.backend.clear_session()
+
+    # Input layer is required, datatype and shape must be provided as well
+    input_pred = tf.keras.layers.Input(shape=(1,), dtype=tf.string, name='input_preceding')
+    input_sent = tf.keras.layers.Input(shape=(1,), dtype=tf.string, name='input_sentence')
+    input_post = tf.keras.layers.Input(shape=(1,), dtype=tf.string, name='input_following')
+
+    x_pred = adapted_text_vectorization_layer(input_pred)
+    x_sent = adapted_text_vectorization_layer(input_sent)
+    x_post = adapted_text_vectorization_layer(input_post)
+
+    embed_pred = tf.keras.layers.Embedding(input_dim=len(adapted_text_vectorization_layer.get_vocabulary()),
+                                           output_dim=model_params['embedding_dimension'],
+                                           mask_zero=True, name='pred_embed')(x_pred)
+    embed_pred = tf.keras.layers.BatchNormalization()(embed_pred)
+    embed_sent = tf.keras.layers.Embedding(input_dim=len(adapted_text_vectorization_layer.get_vocabulary()),
+                                           output_dim=model_params['embedding_dimension'],
+                                           mask_zero=True, name='sent_embed')(x_sent)
+    embed_sent = tf.keras.layers.BatchNormalization()(embed_sent)
+    embed_post = tf.keras.layers.Embedding(input_dim=len(adapted_text_vectorization_layer.get_vocabulary()),
+                                           output_dim=model_params['embedding_dimension'],
+                                           mask_zero=True, name='post_embed')(x_post)
+    embed_post = tf.keras.layers.BatchNormalization()(embed_post)
+
+    dense_pred = tf.keras.layers.Dense(units=model_params['dense_0_pred_size'], activation='relu', name='pred_dense_0')(
+        embed_pred)
+    dense_pred = tf.keras.layers.Flatten()(dense_pred)
+    dense_pred = tf.keras.layers.Dropout(rate=model_params['drop_pred_rate'], name='pred_drop')(dense_pred)
+    dense_pred = tf.keras.layers.Dense(units=model_params['dense_1_pred_size'], activation='relu', name='pred_dense_1')(
+        dense_pred)
+
+    dense_post = tf.keras.layers.Dense(units=model_params['dense_0_post_size'], activation='relu', name='post_dense_0')(
+        embed_post)
+    dense_post = tf.keras.layers.Flatten()(dense_post)
+    dense_post = tf.keras.layers.Dropout(rate=model_params['drop_post_rate'], name='post_drop')(dense_post)
+    dense_post = tf.keras.layers.Dense(units=model_params['dense_1_post_size'], activation='relu', name='post_dense_1')(
+        dense_post)
+
+    sent = tf.keras.layers.Bidirectional(
+        layer=tf.keras.layers.LSTM(units=model_params['bilstm_sent_units'], return_sequences=True), name='sent_bilstm')(
+        embed_sent)
+    sent = tf.keras.layers.Convolution1D(filters=model_params['conv1D_size'],
+                                         kernel_size=model_params['conv1D_kernel_size'],
+                                         strides=1, padding='valid', activation='relu', name='conv1d_1')(sent)
+    sent = tf.keras.layers.MaxPooling1D(pool_size=model_params['pool1d_pool_size'], name='maxpool_1')(sent)
+    sent = tf.keras.layers.Flatten()(sent)
+    sent = tf.keras.layers.Dense(units=model_params['dense_sent_size'],
+                                 activation=model_params['dense_sent_activation'], name='sent_dense')(sent)
+    merged = tf.keras.layers.Concatenate(axis=1, name='merger')([dense_pred, sent, dense_post])
+
+    merged = tf.keras.layers.Dropout(rate=model_params['merger_dropout_rate'], name='merger_dropout')(merged)
+
+    merged = tf.keras.layers.Dense(units=model_params['dense_merger_size'],
+                                   activation=model_params['dense_merger_activation'], name='merged_dense')(merged)
+    output_layer = tf.keras.layers.Dense(units=df['label'].nunique(), use_bias=True, activation='softmax',
+                                         name='Output')(merged)
+
+    model = tf.keras.models.Model(inputs=[input_pred, input_sent, input_post], outputs=output_layer)
+
+    return model

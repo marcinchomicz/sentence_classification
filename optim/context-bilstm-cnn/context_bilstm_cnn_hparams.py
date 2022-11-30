@@ -96,9 +96,9 @@ def define_model_context_bilstm_cnn(adapted_text_vectorization_layer, model_para
     tf.keras.backend.clear_session()
 
     # Input layer is required, datatype and shape must be provided as well
-    input_pred = tf.keras.layers.Input(shape=(1,), dtype=tf.string, name='input_preceding')
-    input_sent = tf.keras.layers.Input(shape=(1,), dtype=tf.string, name='input_sentence')
-    input_post = tf.keras.layers.Input(shape=(1,), dtype=tf.string, name='input_following')
+    input_pred = tf.keras.layers.Input(shape=(1,), dtype=tf.string, name='input_pred')
+    input_sent = tf.keras.layers.Input(shape=(1,), dtype=tf.string, name='input_sent')
+    input_post = tf.keras.layers.Input(shape=(1,), dtype=tf.string, name='input_post')
 
     x_pred = adapted_text_vectorization_layer(input_pred)
     x_sent = adapted_text_vectorization_layer(input_sent)
@@ -107,12 +107,15 @@ def define_model_context_bilstm_cnn(adapted_text_vectorization_layer, model_para
     embed_pred = tf.keras.layers.Embedding(input_dim=len(adapted_text_vectorization_layer.get_vocabulary()),
                                            output_dim=model_params['embedding_dimension'],
                                            mask_zero=True, name='pred_embed')(x_pred)
+    embed_pred = tf.keras.layers.BatchNormalization(name='pred_norm')(embed_pred)
     embed_sent = tf.keras.layers.Embedding(input_dim=len(adapted_text_vectorization_layer.get_vocabulary()),
                                            output_dim=model_params['embedding_dimension'],
                                            mask_zero=True, name='sent_embed')(x_sent)
+    embed_sent = tf.keras.layers.BatchNormalization(name='sent_norm')(embed_sent)
     embed_post = tf.keras.layers.Embedding(input_dim=len(adapted_text_vectorization_layer.get_vocabulary()),
                                            output_dim=model_params['embedding_dimension'],
                                            mask_zero=True, name='post_embed')(x_post)
+    embed_post = tf.keras.layers.BatchNormalization(name='post_norm')(embed_post)
 
     dense_pred = tf.keras.layers.Dense(units=model_params['dense_0_pred_size'], activation='relu', name='pred_dense_0')(
         embed_pred)
