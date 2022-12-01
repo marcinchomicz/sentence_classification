@@ -29,7 +29,7 @@ OUTPUTPATH = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/sandbox/"
 DATAPATH = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/dataset/enron_files_annotated/"
 FILESTORE = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/tmp/"
 MLFLOW_DIR = "file:///home/chomima5/mlruns/"
-ENAME = 'SEQUENCED_3_BiLSTM_2'
+ENAME = 'SEQUENCED_3_BiLSTM_TESTY'
 
 BOM_SIGNAL = 'the start of the email signal, no lines before'
 EOM_SIGNAL = 'the end of the email signal, no lines after'
@@ -107,37 +107,68 @@ except:
 df = prepare_dataset(DATAPATH)
 texts = df['sentence'].values
 
-
-# Model
-def define_model_bilstm(model_params: dict):
+def define_model_bilstm_4(model_params: dict):
     input_block = tf.keras.layers.Input(
         shape=(model_params['window_size'],
-               model_params['output_sequence_length'],),
-        dtype=tf.int32, name='input_block')
+               model_params['output_sequence_length']),
+        dtype=tf.int32,
+        name='input_block')
 
-    x = layer=tf.keras.layers.Embedding(input_dim=len(vectorizer.get_vocabulary()),
-                                        output_dim=model_params['embedding_dimension'],
-                                        mask_zero=True,
-                                        name='embed')(input_block)
+    x = tf.keras.layers.Embedding(input_dim=len(vectorizer.get_vocabulary()),
+                                  output_dim=model_params['embedding_dimension'],
+                                  input_length=model_params['output_sequence_length'],
+                                  mask_zero=False,
+                                  name='embed')(input_block)
+
+    x = tf.keras.layers.BatchNormalization(name='embed_batch_norm')(x)
 
     x = tf.keras.layers.TimeDistributed(
-        tf.keras.layers.Bidirectional(
-            tf.keras.layers.LSTM(units=model_params['bilstm_0_units'], return_sequences=True, name='BiLSTM_0')))(x)
-    x = tf.keras.layers.TimeDistributed(
-        tf.keras.layers.Bidirectional(
-            tf.keras.layers.LSTM(units=model_params['bilstm_1_units'], return_sequences=False, name='BiLSTM_1')))(x)
+        tf.keras.layers.Conv1D(
+            filters=model_params['conv1d_0_units'],
+            kernel_size=model_params['conv1d_0_kernelsize'],
+            padding=model_params['conv1d_0_padding'],
+            activation=model_params['conv1d_0_activation'],
+            name='conv1d_0'))(x)
 
-    x = tf.keras.layers.Dense(units=model_params['dense_0_units'], activation='relu', name='Dense_0')(x)
-    x = tf.keras.layers.Dropout(rate=model_params['drop_0_rate'], name='Drop_0')(x)
-    x = tf.keras.layers.Dense(units=model_params['dense_1_units'], activation='relu', name='Dense_1')(x)
-    x = tf.keras.layers.Dense(units=3, activation='softmax', name='dense_final')(x)
-    #
-    # # na wyjściu bierzemy tylko element wynik dla elementu środkowegoboczkar
-    model = tf.keras.models.Model(inputs=input_block, outputs=x[:, 1])
-    #
-    model.compile(optimizer=tf.keras.optimizers.Adam(model_params['initial_lr']),
-                  loss=tf.keras.losses.SparseCategoricalCrossentropy(),
-                  metrics=['accuracy'])
+    x = tf.keras.layers.TimeDistributed(
+        tf.keras.layers.Conv1D(
+            filters=model_params['conv1d_1_units'],
+            kernel_size=model_params['conv1d_1_kernelsize'],
+            padding=model_params['conv1d_1_padding'],
+            activation=model_params['conv1d_1_activation'],
+            name='conv1d_1'))(x)
+
+    x = tf.keras.layers.TimeDistributed(tf.keras.layers.Flatten())(x)
+
+    x = tf.keras.layers.Bidirectional(
+        tf.keras.layers.GRU(model_params['bilstm_0_units'], return_sequences=True)
+    )(x)
+
+    x = tf.keras.layers.Dropout(rate=model_params['drop_0_rate'])(x)
+
+    x = tf.keras.layers.Bidirectional(
+        tf.keras.layers.GRU(model_params['bilstm_0_units'], return_sequences=True)
+    )(x)
+
+    x = tf.keras.layers.Dropout(rate=model_params['drop_0_rate'])(x)
+
+    x = tf.keras.layers.Bidirectional(
+        tf.keras.layers.GRU(model_params['bilstm_0_units'], return_sequences=True)
+    )(x)
+
+    x = tf.keras.layers.Dropout(rate=model_params['drop_0_rate'])(x)
+
+    x = tf.keras.layers.Bidirectional(
+        tf.keras.layers.GRU(model_params['bilstm_1_units'], return_sequences=False)
+    )(x)
+
+    x = tf.keras.layers.Dropout(rate=model_params['drop_1_rate'])(x)
+
+    x = tf.keras.layers.Dense(
+        units=model_params['dense_0_units'],
+        activation=model_params['dense_0_activation'])(x)
+
+    model = tf.keras.models.Model(inputs=input_block, outputs=x)
     return model
 
 
@@ -183,25 +214,25 @@ def report_master_results(master_results: dict):
     mlflow.log_metrics(_)
     return master_results_
 
-
 '''@nni.variable(nni.quniform(50, 300, 25), name=embedding_dimension)'''
-embedding_dimension = 200
+embedding_dimension = 100
 '''@nni.variable(nni.choice(16, 32, 48, 64, 96, 128), name=bilstm_0_units)'''
-bilstm_0_units = 128
+bilstm_0_units = 64
 '''@nni.variable(nni.choice(16, 32, 48, 64, 96, 128), name=bilstm_1_units)'''
-bilstm_1_units = 128
+bilstm_1_units = 64
 '''@nni.variable(nni.quniform(16, 128, 16), name=dense_0_units)'''
-dense_0_units = 128
+dense_0_units = 64
 '''@nni.variable(nni.uniform(0., 0.5), name=drop_0_rate)'''
-drop_0_rate = 0.5
+drop_0_rate = 0.
 '''@nni.variable(nni.quniform(16, 128, 16), name=dense_1_units)'''
-dense_1_units = 128
+dense_1_units = 64
 '''@nni.variable(nni.uniform(0.05, 0.7), name=lr_reduction_factor)'''
 lr_reduction_factor = 0.1
 '''@nni.variable(nni.uniform(5e-5, 1e-3), name=initial_lr)'''
-initial_lr = 0.0005
+initial_lr = 0.0001
 '''@nni.variable(nni.choice(8,16,32,64,128,256), name=batch_size)'''
-batch_size = 512
+batch_size = 64
+
 
 model_params = {
     'vocab_size': 8000,
@@ -209,18 +240,32 @@ model_params = {
     'embedding_dimension': int(embedding_dimension),
     'window_size': 3,
 
-    'bilstm_0_units': int(bilstm_0_units),
-    'bilstm_1_units': int(bilstm_0_units),
-    'dense_0_units': int(dense_0_units),
-    'drop_0_rate': drop_0_rate,
-    'dense_1_units': int(dense_1_units),
-    'initial_lr': initial_lr,
-    'lr_reduction_factor':lr_reduction_factor,
-    'batch_size': int(batch_size),
-    'max_epochs': 15,
+    'conv1d_0_units':32,
+    'conv1d_0_kernelsize':3,
+    'conv1d_0_padding': 'valid',
+    'conv1d_0_activation': 'relu',
+    'conv1d_1_units':64,
+    'conv1d_1_kernelsize':3,
+    'conv1d_1_padding': 'valid',
+    'conv1d_1_activation': 'relu',
 
-    'early_stop_threshold_patience':6,
-    'early_stop_threshold_value':0.95
+    'bilstm_0_units': 32,
+    'bilstm_1_units': 32,
+
+    'dense_0_units': 64,
+    'dense_0_activation': 'relu',
+
+    'drop_0_rate': 0.1,
+    'drop_1_rate': 0.1,
+
+
+    'initial_lr': 0.0001,
+    'lr_reduction_factor': 0.5,
+    'lr_reduction_patience': 5,
+    'batch_size': 64,
+    'max_epochs': 50,
+
+    'early_stop_patience': 10,
 
 }
 
@@ -234,12 +279,12 @@ vectorizer = tf.keras.layers.TextVectorization(max_tokens=model_params['vocab_si
                                                name='Vectorizer')
 vectorizer.adapt(texts)
 
-model_definition = define_model_bilstm
+model_definition = define_model_bilstm_4
 RANDOM_STATES = [123, 12, 42]
 with mlflow.start_run(experiment_id=eid, nested=False, tags={'master': True}) as master_run:
     master_results = {}
-    for k in [1]:
-        for i in range(0, 3):
+    for k in [1,2,3]:
+        for i in range(0, 1):
             rs = RANDOM_STATES[i]
 
             train_data, val_data = split_dataset(df, rs)
@@ -265,14 +310,10 @@ with mlflow.start_run(experiment_id=eid, nested=False, tags={'master': True}) as
                           use_multiprocessing=True,
                           callbacks=[
                               tf.keras.callbacks.ReduceLROnPlateau(factor=model_params['lr_reduction_factor'],
-                                                                   patience=3,
+                                                                   patience=model_params['lr_reduction_patience'],
                                                                    verbose=1),
                               tf.keras.callbacks.EarlyStopping(min_delta=1e-4,
-                                                               patience=5,
-                                                               restore_best_weights=True),
-                              tf.keras.callbacks.EarlyStopping(baseline=model_params['early_stop_threshold_value'],
-                                                               monitor='val_accuracy',
-                                                               patience=model_params['early_stop_threshold_patience'],
+                                                               patience=model_params['early_stop_patience'],
                                                                restore_best_weights=True),
                               tf.keras.callbacks.LambdaCallback(on_epoch_end=report_epoch_progress)
                           ])
@@ -287,8 +328,6 @@ with mlflow.start_run(experiment_id=eid, nested=False, tags={'master': True}) as
                     'default': accuracy_score(y_true, y_pred),
                 }
                 """@nni.report_intermediate_result(final_metrics_)"""
-                if final_metrics_['default']<model_params['early_stop_threshold_value']:
-                    break
     report_parameters(model_params, model, model_definition,
                       master_run)  # model from the last iteration, params are shared among all of them
     master_results_ = report_master_results(master_results)
