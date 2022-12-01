@@ -29,7 +29,7 @@ OUTPUTPATH = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/sandbox/"
 DATAPATH = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/dataset/enron_files_annotated/"
 FILESTORE = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/tmp/"
 MLFLOW_DIR = "file:///home/chomima5/mlruns/"
-ENAME = 'SEQUENCED_3_BiLSTM_TESTY'
+ENAME = 'SEQUENCED_ConvBilstm'
 
 BOM_SIGNAL = 'the start of the email signal, no lines before'
 EOM_SIGNAL = 'the end of the email signal, no lines after'
@@ -107,7 +107,7 @@ except:
 df = prepare_dataset(DATAPATH)
 texts = df['sentence'].values
 
-def define_model_bilstm_4(model_params: dict):
+def define_model_conv_bilstm(model_params: dict):
     input_block = tf.keras.layers.Input(
         shape=(model_params['window_size'],
                model_params['output_sequence_length']),
@@ -141,25 +141,25 @@ def define_model_bilstm_4(model_params: dict):
     x = tf.keras.layers.TimeDistributed(tf.keras.layers.Flatten())(x)
 
     x = tf.keras.layers.Bidirectional(
-        tf.keras.layers.GRU(model_params['bilstm_0_units'], return_sequences=True)
+        tf.keras.layers.GRU(model_params['gru_0_units'], return_sequences=True)
     )(x)
 
     x = tf.keras.layers.Dropout(rate=model_params['drop_0_rate'])(x)
 
     x = tf.keras.layers.Bidirectional(
-        tf.keras.layers.GRU(model_params['bilstm_0_units'], return_sequences=True)
+        tf.keras.layers.GRU(model_params['gru_0_units'], return_sequences=True)
     )(x)
 
     x = tf.keras.layers.Dropout(rate=model_params['drop_0_rate'])(x)
 
     x = tf.keras.layers.Bidirectional(
-        tf.keras.layers.GRU(model_params['bilstm_0_units'], return_sequences=True)
+        tf.keras.layers.GRU(model_params['gru_0_units'], return_sequences=True)
     )(x)
 
     x = tf.keras.layers.Dropout(rate=model_params['drop_0_rate'])(x)
 
     x = tf.keras.layers.Bidirectional(
-        tf.keras.layers.GRU(model_params['bilstm_1_units'], return_sequences=False)
+        tf.keras.layers.GRU(model_params['gru_1_units'], return_sequences=False)
     )(x)
 
     x = tf.keras.layers.Dropout(rate=model_params['drop_1_rate'])(x)
@@ -216,21 +216,26 @@ def report_master_results(master_results: dict):
 
 '''@nni.variable(nni.quniform(50, 300, 25), name=embedding_dimension)'''
 embedding_dimension = 100
-'''@nni.variable(nni.choice(16, 32, 48, 64, 96, 128), name=bilstm_0_units)'''
-bilstm_0_units = 64
-'''@nni.variable(nni.choice(16, 32, 48, 64, 96, 128), name=bilstm_1_units)'''
-bilstm_1_units = 64
+'''@nni.variable(nni.choice(16, 32, 48, 64, 96), name=conv1d_0_units)'''
+conv1d_0_units=32
+'''@nni.variable(nni.choice(16, 32, 48, 64, 96), name=conv1d_1_units)'''
+conv1d_1_units=64
+'''@nni.variable(nni.choice(16, 32, 48, 64 ), name=gru_0_units)'''
+gru_0_units = 64
+'''@nni.variable(nni.choice(16, 32, 48, 64), name=gru_1_units)'''
+gru_1_units = 64
 '''@nni.variable(nni.quniform(16, 128, 16), name=dense_0_units)'''
 dense_0_units = 64
 '''@nni.variable(nni.uniform(0., 0.5), name=drop_0_rate)'''
 drop_0_rate = 0.
-'''@nni.variable(nni.quniform(16, 128, 16), name=dense_1_units)'''
-dense_1_units = 64
+'''@nni.variable(nni.uniform(0., 0.5), name=drop_1_rate)'''
+drop_1_rate = 0.
+
 '''@nni.variable(nni.uniform(0.05, 0.7), name=lr_reduction_factor)'''
 lr_reduction_factor = 0.1
 '''@nni.variable(nni.uniform(5e-5, 1e-3), name=initial_lr)'''
 initial_lr = 0.0001
-'''@nni.variable(nni.choice(8,16,32,64,128,256), name=batch_size)'''
+'''@nni.variable(nni.choice(8, 16, 32, 64, 128, 256), name=batch_size)'''
 batch_size = 64
 
 
@@ -240,30 +245,30 @@ model_params = {
     'embedding_dimension': int(embedding_dimension),
     'window_size': 3,
 
-    'conv1d_0_units':32,
+    'conv1d_0_units':int(conv1d_0_units),
     'conv1d_0_kernelsize':3,
     'conv1d_0_padding': 'valid',
     'conv1d_0_activation': 'relu',
-    'conv1d_1_units':64,
+    'conv1d_1_units':int(conv1d_1_units),
     'conv1d_1_kernelsize':3,
     'conv1d_1_padding': 'valid',
     'conv1d_1_activation': 'relu',
 
-    'bilstm_0_units': 32,
-    'bilstm_1_units': 32,
+    'gru_0_units': int(gru_0_units),
+    'gru_1_units': int(gru_1_units),
 
-    'dense_0_units': 64,
+    'dense_0_units': int(dense_0_units),
     'dense_0_activation': 'relu',
 
-    'drop_0_rate': 0.1,
-    'drop_1_rate': 0.1,
+    'drop_0_rate': drop_0_rate,
+    'drop_1_rate': drop_0_rate,
 
 
-    'initial_lr': 0.0001,
-    'lr_reduction_factor': 0.5,
+    'initial_lr': initial_lr,
+    'lr_reduction_factor': lr_reduction_factor,
     'lr_reduction_patience': 5,
-    'batch_size': 64,
-    'max_epochs': 50,
+    'batch_size': int(batch_size),
+    'max_epochs': 100,
 
     'early_stop_patience': 10,
 
@@ -279,19 +284,19 @@ vectorizer = tf.keras.layers.TextVectorization(max_tokens=model_params['vocab_si
                                                name='Vectorizer')
 vectorizer.adapt(texts)
 
-model_definition = define_model_bilstm_4
+model_definition = define_model_conv_bilstm
 RANDOM_STATES = [123, 12, 42]
 with mlflow.start_run(experiment_id=eid, nested=False, tags={'master': True}) as master_run:
     master_results = {}
     for k in [1,2,3]:
-        for i in range(0, 1):
+        for i in range(0, 2):
+            tf.keras.backend.clear_session()
             rs = RANDOM_STATES[i]
 
             train_data, val_data = split_dataset(df, rs)
             train_texts, train_labels = prepare_records(train_data, vectorizer)
             val_texts, val_labels = prepare_records(val_data, vectorizer)
 
-            tf.keras.backend.clear_session()
             model = model_definition(model_params)
 
             with mlflow.start_run(experiment_id=eid,
@@ -336,3 +341,4 @@ with mlflow.start_run(experiment_id=eid, nested=False, tags={'master': True}) as
         'loss': master_results_['Loss_eval']
     }
     """@nni.report_final_result(master_results_)"""
+
