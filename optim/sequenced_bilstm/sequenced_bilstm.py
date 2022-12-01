@@ -29,7 +29,7 @@ OUTPUTPATH = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/sandbox/"
 DATAPATH = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/dataset/enron_files_annotated/"
 FILESTORE = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/tmp/"
 MLFLOW_DIR = "file:///home/chomima5/mlruns/"
-ENAME = 'SEQUENCED_ConvBilstm'
+ENAME = 'SEQUENCED_ConvBilstm_iter_2'
 
 BOM_SIGNAL = 'the start of the email signal, no lines before'
 EOM_SIGNAL = 'the end of the email signal, no lines after'
@@ -214,28 +214,28 @@ def report_master_results(master_results: dict):
     mlflow.log_metrics(_)
     return master_results_
 
-'''@nni.variable(nni.quniform(50, 300, 25), name=embedding_dimension)'''
+'''@nni.variable(nni.quniform(140, 260, 10), name=embedding_dimension)'''
 embedding_dimension = 100
-'''@nni.variable(nni.choice(16, 32, 48, 64, 96), name=conv1d_0_units)'''
+'''@nni.variable(nni.choice(56, 64, 72), name=conv1d_0_units)'''
 conv1d_0_units=32
-'''@nni.variable(nni.choice(16, 32, 48, 64, 96), name=conv1d_1_units)'''
+'''@nni.variable(nni.choice(80,96,104), name=conv1d_1_units)'''
 conv1d_1_units=64
-'''@nni.variable(nni.choice(16, 32, 48, 64 ), name=gru_0_units)'''
+'''@nni.variable(nni.choice(48, 64, 96), name=gru_0_units)'''
 gru_0_units = 64
-'''@nni.variable(nni.choice(16, 32, 48, 64), name=gru_1_units)'''
+'''@nni.variable(nni.choice(24, 32, 40), name=gru_1_units)'''
 gru_1_units = 64
-'''@nni.variable(nni.quniform(16, 128, 16), name=dense_0_units)'''
+'''@nni.variable(nni.quniform(96, 144, 8), name=dense_0_units)'''
 dense_0_units = 64
-'''@nni.variable(nni.uniform(0., 0.5), name=drop_0_rate)'''
+'''@nni.variable(nni.uniform(0.25, 0.4), name=drop_0_rate)'''
 drop_0_rate = 0.
-'''@nni.variable(nni.uniform(0., 0.5), name=drop_1_rate)'''
+'''@nni.variable(nni.uniform(0.25, 0.5), name=drop_1_rate)'''
 drop_1_rate = 0.
 
-'''@nni.variable(nni.uniform(0.05, 0.7), name=lr_reduction_factor)'''
+'''@nni.variable(nni.uniform(0.4, 0.7), name=lr_reduction_factor)'''
 lr_reduction_factor = 0.1
-'''@nni.variable(nni.uniform(5e-5, 1e-3), name=initial_lr)'''
+'''@nni.variable(nni.uniform(1e-4, 6e-4), name=initial_lr)'''
 initial_lr = 0.0001
-'''@nni.variable(nni.choice(8, 16, 32, 64, 128, 256), name=batch_size)'''
+'''@nni.variable(nni.choice(32, 64, 128, 128), name=batch_size)'''
 batch_size = 64
 
 
