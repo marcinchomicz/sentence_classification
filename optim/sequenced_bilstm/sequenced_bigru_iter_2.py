@@ -29,7 +29,7 @@ OUTPUTPATH = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/sandbox/"
 DATAPATH = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/dataset/enron_files_annotated/"
 FILESTORE = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/tmp/"
 MLFLOW_DIR = "file:///home/chomima5/mlruns/"
-ENAME = 'SEQUENCED_ConvBilstm_iter_2'
+ENAME = 'SEQUENCED_ConvBiGRU_iter_2'
 
 BOM_SIGNAL = 'the start of the email signal, no lines before'
 EOM_SIGNAL = 'the end of the email signal, no lines after'
@@ -214,63 +214,42 @@ def report_master_results(master_results: dict):
     mlflow.log_metrics(_)
     return master_results_
 
-'''@nni.variable(nni.quniform(140, 260, 10), name=embedding_dimension)'''
-embedding_dimension = 100
-'''@nni.variable(nni.choice(56, 64, 72), name=conv1d_0_units)'''
-conv1d_0_units=32
-'''@nni.variable(nni.choice(80,96,104), name=conv1d_1_units)'''
-conv1d_1_units=64
-'''@nni.variable(nni.choice(48, 64, 96), name=gru_0_units)'''
-gru_0_units = 64
-'''@nni.variable(nni.choice(24, 32, 40), name=gru_1_units)'''
-gru_1_units = 64
-'''@nni.variable(nni.quniform(96, 144, 8), name=dense_0_units)'''
-dense_0_units = 64
-'''@nni.variable(nni.uniform(0.25, 0.4), name=drop_0_rate)'''
-drop_0_rate = 0.
-'''@nni.variable(nni.uniform(0.25, 0.5), name=drop_1_rate)'''
-drop_1_rate = 0.
 
-'''@nni.variable(nni.uniform(0.4, 0.7), name=lr_reduction_factor)'''
-lr_reduction_factor = 0.1
 '''@nni.variable(nni.uniform(1e-4, 6e-4), name=initial_lr)'''
-initial_lr = 0.0001
-'''@nni.variable(nni.choice(32, 64, 128, 128), name=batch_size)'''
+initial_lr = 0.001
+'''@nni.variable(nni.quniform(32, 68, 4), name=batch_size)'''
 batch_size = 64
+'''@nni.variable(nni.uniform(0.05, 0.95), name=lr_reduction_factor)'''
+lr_reduction_factor = 0.7
+'''@nni.variable(nni.quniform(2, 6, 1), name=lr_reduction_step)'''
+lr_reduction_step = 2
 
+model_params={
+    "vocab_size": 8000,
+    "output_sequence_length": 45,
+    "embedding_dimension": 190,
+    "window_size": 3,
+    "conv1d_0_units": 56,
+    "conv1d_0_kernelsize": 3,
+    "conv1d_0_padding": "valid",
+    "conv1d_0_activation": "relu",
+    "conv1d_1_units": 96,
+    "conv1d_1_kernelsize": 3,
+    "conv1d_1_padding": "valid",
+    "conv1d_1_activation": "relu",
+    "gru_0_units": 48,
+    "gru_1_units": 40,
+    "dense_0_units": 104,
+    "dense_0_activation": "relu",
+    "drop_0_rate": 0.2600093538288592,
+    "drop_1_rate": 0.2600093538288592,
+    "initial_lr": 1e-3,
+    "lr_reduction_factor": lr_reduction_factor,
+    "lr_reduction_step": int(lr_reduction_step),
 
-model_params = {
-    'vocab_size': 8000,
-    'output_sequence_length': 45,
-    'embedding_dimension': int(embedding_dimension),
-    'window_size': 3,
-
-    'conv1d_0_units':int(conv1d_0_units),
-    'conv1d_0_kernelsize':3,
-    'conv1d_0_padding': 'valid',
-    'conv1d_0_activation': 'relu',
-    'conv1d_1_units':int(conv1d_1_units),
-    'conv1d_1_kernelsize':3,
-    'conv1d_1_padding': 'valid',
-    'conv1d_1_activation': 'relu',
-
-    'gru_0_units': int(gru_0_units),
-    'gru_1_units': int(gru_1_units),
-
-    'dense_0_units': int(dense_0_units),
-    'dense_0_activation': 'relu',
-
-    'drop_0_rate': drop_0_rate,
-    'drop_1_rate': drop_0_rate,
-
-
-    'initial_lr': initial_lr,
-    'lr_reduction_factor': lr_reduction_factor,
-    'lr_reduction_patience': 5,
-    'batch_size': int(batch_size),
-    'max_epochs': 100,
-
-    'early_stop_patience': 10,
+    "batch_size": batch_size,
+    "max_epochs": 100,
+    "early_stop_patience": 10
 
 }
 
@@ -284,8 +263,14 @@ vectorizer = tf.keras.layers.TextVectorization(max_tokens=model_params['vocab_si
                                                name='Vectorizer')
 vectorizer.adapt(texts)
 
+def lr_schedule(epoch, lr):
+    if epoch>0 and epoch % model_params['lr_reduction_step'] ==0:
+        return lr*model_params['lr_reduction_factor']
+    else:
+        return lr
+
 model_definition = define_model_conv_bilstm
-RANDOM_STATES = [123, 12, 42]
+RANDOM_STATES = [123, 12, 42, 78, 95]
 with mlflow.start_run(experiment_id=eid, nested=False, tags={'master': True}) as master_run:
     master_results = {}
     for k in [1,2,3]:
@@ -298,9 +283,9 @@ with mlflow.start_run(experiment_id=eid, nested=False, tags={'master': True}) as
             val_texts, val_labels = prepare_records(val_data, vectorizer)
 
             model = model_definition(model_params)
-
+            run_name=f"{master_run.data.tags['mlflow.runName']}-{k}-{rs}"
             with mlflow.start_run(experiment_id=eid,
-                                  run_name=f"{master_run.data.tags['mlflow.runName']}-{k}-{rs}", nested=True,
+                                  run_name=run_name, nested=True,
                                   tags={'master': False}) as run:
                 model.compile(optimizer=tf.keras.optimizers.Adam(model_params['initial_lr']),
                               loss=tf.keras.losses.SparseCategoricalCrossentropy(),
@@ -314,13 +299,12 @@ with mlflow.start_run(experiment_id=eid, nested=False, tags={'master': True}) as
                           validation_data=(val_texts, val_labels),
                           use_multiprocessing=True,
                           callbacks=[
-                              tf.keras.callbacks.ReduceLROnPlateau(factor=model_params['lr_reduction_factor'],
-                                                                   patience=model_params['lr_reduction_patience'],
-                                                                   verbose=1),
                               tf.keras.callbacks.EarlyStopping(min_delta=1e-4,
                                                                patience=model_params['early_stop_patience'],
                                                                restore_best_weights=True),
-                              tf.keras.callbacks.LambdaCallback(on_epoch_end=report_epoch_progress)
+                              tf.keras.callbacks.LearningRateScheduler(schedule=lr_schedule, verbose=1),
+                              tf.keras.callbacks.LambdaCallback(on_epoch_end=report_epoch_progress),
+                              tf.keras.callbacks.TensorBoard(log_dir=f'tblogs/{run_name}/',write_graph=False)
                           ])
 
                 eval_loss, eval_acc = model.evaluate(val_texts, val_labels)
