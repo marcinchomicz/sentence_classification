@@ -1,0 +1,23 @@
+{
+  "vocab_size": 8000,
+  "output_sequence_length": 45,
+  "embedding_dimension": 150,
+  "window_size": 3,
+  "conv1d_0_units": 80,
+  "conv1d_0_kernelsize": 3,
+  "conv1d_0_padding": "valid",
+  "conv1d_0_activation": "relu",
+  "conv1d_1_units": 80,
+  "conv1d_1_kernelsize": 3,
+  "conv1d_1_padding": "valid",
+  "conv1d_1_activation": "relu",
+  "gru_0_units": 128,
+  "gru_1_units": 64,
+  "drop_0_rate": 0.3448836829019953,
+  "initial_lr": 0.0006500000000000001,
+  "lr_reduction_factor": 0.44531593652922397,
+  "lr_reduction_patience": 3,
+  "batch_size": 56,
+  "max_epochs": 100,
+  "early_stop_patience": 10
+}

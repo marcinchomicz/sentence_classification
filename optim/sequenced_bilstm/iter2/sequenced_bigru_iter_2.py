@@ -29,7 +29,8 @@ OUTPUTPATH = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/sandbox/"
 DATAPATH = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/dataset/enron_files_annotated/"
 FILESTORE = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/tmp/"
 MLFLOW_DIR = "file:///home/chomima5/mlruns/"
-ENAME = 'SEQUENCED_ConvBiGRU_iter_2'
+TENSORBOARD_DIR = '/mnt/workdata/_WORK_/mail_zonning/mail_zoning/optim/sequenced_bilstm/tblogs/'
+ENAME = 'SEQUENCED_ConvBiGRU_iter_3'
 
 BOM_SIGNAL = 'the start of the email signal, no lines before'
 EOM_SIGNAL = 'the end of the email signal, no lines after'
@@ -165,8 +166,8 @@ def define_model_conv_bilstm(model_params: dict):
     x = tf.keras.layers.Dropout(rate=model_params['drop_1_rate'])(x)
 
     x = tf.keras.layers.Dense(
-        units=model_params['dense_0_units'],
-        activation=model_params['dense_0_activation'])(x)
+        units=3,
+        activation='softmax')(x)
 
     model = tf.keras.models.Model(inputs=input_block, outputs=x)
     return model
@@ -247,7 +248,7 @@ model_params={
     "lr_reduction_factor": lr_reduction_factor,
     "lr_reduction_step": int(lr_reduction_step),
 
-    "batch_size": batch_size,
+    "batch_size": int(batch_size),
     "max_epochs": 100,
     "early_stop_patience": 10
 
@@ -304,7 +305,7 @@ with mlflow.start_run(experiment_id=eid, nested=False, tags={'master': True}) as
                                                                restore_best_weights=True),
                               tf.keras.callbacks.LearningRateScheduler(schedule=lr_schedule, verbose=1),
                               tf.keras.callbacks.LambdaCallback(on_epoch_end=report_epoch_progress),
-                              tf.keras.callbacks.TensorBoard(log_dir=f'tblogs/{run_name}/',write_graph=False)
+                              tf.keras.callbacks.TensorBoard(log_dir=f'{TENSORBOARD_DIR}{run_name}/',write_graph=False)
                           ])
 
                 eval_loss, eval_acc = model.evaluate(val_texts, val_labels)

@@ -1,0 +1,5 @@
+{
+  "CUDA_VISIBLE_DEVICES": "0",
+  "CurrDir": "/tmp/mchomicz/nni/annotation/tmpzd7wxalx",
+  "script_path": "sequenced_bigru.py"
+}
