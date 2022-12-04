@@ -22,7 +22,7 @@ OUTPUTPATH = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/sandbox/"
 DATAPATH = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/dataset/enron_files_annotated/"
 FILESTORE = "/mnt/workdata/_WORK_/mail_zonning/mail_zoning/tmp/"
 MLFLOW_DIR = "file:///home/chomima5/mlruns/"
-ENAME = 'PS_Context-BiLSTM-CNN-2'
+ENAME = 'context-bilstm-cnn'
 
 BOM_SIGNAL = 'the start of the email signal, no lines before'
 EOM_SIGNAL = 'the end of the email signal, no lines after'
@@ -272,12 +272,12 @@ model_definition = define_model_context_bilstm_cnn
 label_count = df['label'].nunique()
 
 
-RANDOM_STATES=[123, 12, 42]
+RANDOM_STATES=[123]
 
 with mlflow.start_run(experiment_id=eid, nested=False, tags={'master': True}) as master_run:
     master_results = {}
 
-    for i in range(0, 3):
+    for i in range(0, 1):
         rs=RANDOM_STATES[i]
         train_data, train_labels, test_data, test_labels = split_dataset(df, rs)
         tf.keras.backend.clear_session()
