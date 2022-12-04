@@ -19,47 +19,49 @@ class ErrorWindowSizeMustBeOdd(Exception):
         super().__init__(message)
 
 class ErrorParamNotFound(Exception):
-    """ Exception raised when at least one of expected paramweters was not found """
+    """ Exception raised when at least one of expected parameters was not found """
     def __init__(self, message):
         super().__init__(message)
 
 
 class MovingWindowSentenceClassifier:
+    # noinspection SpellCheckingInspection
     """
-    Sentence-level classifier with sliding window approach.
+        Sentence-level classifier with sliding window approach.
 
-    There are two main components:
-    - Vectorizer - text vectorization layer
-    - Model - multiclass classification model based on two convolutional and two
-    Bidirectional GRU layers,separated with dropout.
+        There are two main components:
+        - Vectorizer - text vectorization layer
+        - Model - multiclass classification model based on two convolutional and two
+        Bidirectional GRU layers,separated with dropout.
 
-    The class exposes the interface of tf.keras.models.Mode as itself,
-    so any operation possible on Model instance are available for the
-    class instance.
+        The class exposes the interface of tf.keras.models.Mode as itself,
+        so any operation possible on Model instance are available for the
+        class instance.
 
-    The structure of model is as follow:
-    - Input
-    -- Embedding layer
-    -- BatchNormalization
-    -- TimDistributed
-    --- Conv1D
-    -- TimDistributed
-    --- Conv1D
-    -- Dropout
-    -- TimeDistributed
-    --- Flatten
-    -- Bidirectional
-    --- GRU (return sequence=True)
-    -- Bidirectional
-    --- GRU (return_sequence=False)
-    - Dense (output)
+        The structure of model is as follows:
+        - Input
+        -- Embedding layer
+        -- BatchNormalization
+        -- TimDistributed
+        --- Conv1D
+        -- TimDistributed
+        --- Conv1D
+        -- Dropout
+        -- TimeDistributed
+        --- Flatten
+        -- Bidirectional
+        --- GRU (return sequence=True)
+        -- Bidirectional
+        --- GRU (return_sequence=False)
+        - Dense (output)
 
-    The response variable should be provided as sparse value,
-    and sparse categorical crossentropy should be used.
+        The response variable should be provided as sparse value,
+        and sparse categorical crossentropy should be used.
 
-    """
+        """
 
     # parameters that must be provided
+    # noinspection SpellCheckingInspection
     MODEL_PARAMS_EXPECTED_KEYS = {
         'output_class_count',
         'vocab_size',
@@ -79,7 +81,7 @@ class MovingWindowSentenceClassifier:
                  **kwargs):
         """
         Instantiates classifier object, based on configuration in model_params.
-        The dictionary must adhere to the dollowing structure:
+        The dictionary must adhere to the following structure:
 
             {
 
@@ -87,7 +89,7 @@ class MovingWindowSentenceClassifier:
             vocab_size: int - the number of vocabulary items for text vectorization,
             output_sequence_length: int -  the size of vectorized sequence,
             embedding_dimension: int - the length of embedding vector,
-            window_size: int - sliding window size, must be odd number greater or equel 3,
+            window_size: int - sliding window size, must be odd number greater or equal 3,
             'conv1d_0_units': int - number of units in first convolution,
             'conv1d_0_kernelsize': int - kernelsize for first convolution,
             'conv1d_0_padding': str - padding mode for first convolution,
@@ -98,13 +100,13 @@ class MovingWindowSentenceClassifier:
             'conv1d_1_activation': str - activation function for second convolution,
             'gru_0_units': int - number of units in first GRU layer,
             'gru_1_units': int - number of units in second GRU layer,,
-            'drop_0_rate': float - dropoute rate between CNN and RNN components
+            'drop_0_rate': float - dropout rate between CNN and RNN components
             }
 
         :param model_params: a dictionary with params for model, see description above
         :param bod_line: specific line, added at the begin of each document
         :param eod_line: specific line, added at the end of each document
-        :param corpus: list of strings used to feed text vectorization, typically all docuemnts from train set
+        :param corpus: list of strings used to feed text vectorization, typically all documents from train set
         :param kwargs: other parameters, passed directly to Vectorizer
         """
         self._params = self._set_params(model_params)
@@ -128,7 +130,7 @@ class MovingWindowSentenceClassifier:
     def _set_params(self, model_params: dict):
         """
         Perform validation of model_params dictionary structure
-        :param model_params: model_params, dicionary, see __init__ documentation
+        :param model_params: model_params, dictionary, see __init__ documentation
         :return: model_params dictionary after validation
         """
         lacking_params=self.MODEL_PARAMS_EXPECTED_KEYS.difference(model_params)
@@ -148,7 +150,7 @@ class MovingWindowSentenceClassifier:
                          label: str = 'label') -> (np.ndarray, np.ndarray) :
         """
         Prepare windowed records for classification.
-        Each record is composed of <windo_size> lines of text
+        Each record is composed of <window_size> lines of text
 
         :param data: pandas dataframe containing documents
         :param doc_id: name of column with document id
@@ -184,7 +186,7 @@ class MovingWindowSentenceClassifier:
                         ):
         """
         Prepare windowed records for classification.
-        Each record is composed of <windo_size> lines of text
+        Each record is composed of <window_size> lines of text
         The records are stored internally as train records and labels.
 
         :param data: pandas dataframe containing documents
@@ -204,7 +206,7 @@ class MovingWindowSentenceClassifier:
                                    label: str = 'label'):
         """
         Prepare windowed records for classification.
-        Each record is composed of <windo_size> lines of text
+        Each record is composed of <window_size> lines of text
         The records are stored internally as validation records and labels.
 
         :param data: pandas dataframe containing documents
@@ -223,7 +225,7 @@ class MovingWindowSentenceClassifier:
                              label: str = 'label'):
         """
         Prepare windowed records for classification.
-        Each record is composed of <windo_size> lines of text
+        Each record is composed of <window_size> lines of text
         The records are stored internally as test records and labels.
 
         :param data: pandas dataframe containing documents
