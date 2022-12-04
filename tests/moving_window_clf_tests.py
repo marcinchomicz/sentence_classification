@@ -60,7 +60,7 @@ class MovinWindowSentenceClassifierTests(unittest.TestCase):
         return train_data, val_data
 
     def test_quick_overall(self):
-        """ The test used to verify the classification functionality on a single epoch only """
+        """ The test to verify the classification functionality on a single epoch only """
         model_params = {
             "output_class_count": 3,
             "vocab_size": 8000,
