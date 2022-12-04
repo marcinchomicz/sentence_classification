@@ -1,0 +1,20 @@
+authorName: mchomicz
+experimentName: ContextBranchClassifier
+trialConcurrency: 1
+maxExecDuration: 12h
+maxTrialNum: 500
+trainingServicePlatform: local
+useAnnotation: true
+localConfig:
+  useActiveGpu: true
+  maxTrialNumPerGpu: 5
+  gpuIndices: "0"
+tuner:
+  choice: TPE
+  builtinTunerName: TPE
+  classArgs:
+    optimize_mode: maximize
+trial:
+  command: python context_branch_clf_optim.py
+  codeDir: .
+  gpuNum: 1
