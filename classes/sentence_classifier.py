@@ -2,7 +2,7 @@ import tensorflow as tf
 import pandas as pd
 import numpy as np
 from numpy.lib.stride_tricks import sliding_window_view
-
+from abc import ABC,  abstractmethod
 
 
 class ErrorWindowSizeToSmall(Exception):
@@ -10,7 +10,6 @@ class ErrorWindowSizeToSmall(Exception):
     def __init__(self):
         message = 'Window size must be greater or equal 3.'
         super().__init__(message)
-
 
 class ErrorWindowSizeMustBeOdd(Exception):
     """ Exception raised when window size is even """
@@ -23,10 +22,91 @@ class ErrorParamNotFound(Exception):
     def __init__(self, message):
         super().__init__(message)
 
-class BaseSentenceClassifier:
-    pass
 
-class MovingWindowSentenceClassifier:
+class BaseSentenceClassifier(ABC):
+
+    def __init__(self, model_params: dict, bod_line: str, eod_line: str, corpus, **kwargs):
+        self._params = self._set_params(model_params)
+        self.bod_line = bod_line
+        self.eod_line = eod_line
+        self.vectorizer = tf.keras.layers.TextVectorization(
+            max_tokens=self._params['vocab_size'],
+            output_sequence_length=self._params['output_sequence_length'],
+            output_mode='int', name='Vectorizer', **kwargs)
+        self.vectorizer.adapt(corpus)
+        self.train_texts = np.ndarray([])
+        self.train_labels = np.ndarray([])
+        self.validation_texts = np.ndarray([])
+        self.validation_labels = np.ndarray([])
+        self.test_texts = np.ndarray([])
+        self.test_labels = np.ndarray([])
+
+    def _set_params(self, model_params: dict):
+        return model_params
+
+    @abstractmethod
+    def _prepare_records(self, data, doc_id, line_index, line, label):
+        pass
+
+    def prepare_train_records(self, data: pd.DataFrame,
+                        doc_id: str = 'doc',
+                        line_index: str = 'idx',
+                        line: str = 'sentence',
+                        label: str = 'label',
+                        ):
+        """
+                Prepare windowed records for classification.
+        Each record is composed of <window_size> lines of text
+        The records are stored internally as train records and labels.
+
+        :param data: pandas dataframe containing documents
+        :param doc_id: name of column with document id
+        :param line_index: name of column with index of line within the document
+        :param line: name of column with line of the document
+        :param label: name of column with label for the line
+        """
+        self.train_texts, self.train_labels = self._prepare_records(data, doc_id, line_index, line, label)
+
+    def prepare_validation_records(self,
+                                   data: pd.DataFrame,
+                                   doc_id: str = 'doc',
+                                   line_index: str = 'idx',
+                                   line: str = 'sentence',
+                                   label: str = 'label'):
+        """
+        Prepare windowed records for classification.
+        Each record is composed of <window_size> lines of text
+        The records are stored internally as validation records and labels.
+
+        :param data: pandas dataframe containing documents
+        :param doc_id: name of column with document id
+        :param line_index: name of column with index of line within the document
+        :param line: name of column with line of the document
+        :param label: name of column with label for the line
+        """
+        self.validation_texts, self.validation_labels = self._prepare_records(data, doc_id, line_index, line, label)
+
+    def prepare_test_records(self,
+                             data: pd.DataFrame,
+                             doc_id: str = 'doc',
+                             line_index: str = 'idx',
+                             line: str = 'sentence',
+                             label: str = 'label'):
+        """
+        Prepare windowed records for classification.
+        Each record is composed of <window_size> lines of text
+        The records are stored internally as test records and labels.
+
+        :param data: pandas dataframe containing documents
+        :param doc_id: name of column with document id
+        :param line_index: name of column with index of line within the document
+        :param line: name of column with line of the document
+        :param label: name of column with label for the line
+        """
+        self.test_texts, self.test_labels = self._prepare_records(data, doc_id, line_index, line, label)
+
+
+class MovingWindowSentenceClassifier(BaseSentenceClassifier):
     # noinspection SpellCheckingInspection
     """
         Sentence-level classifier with sliding window approach.
@@ -77,9 +157,9 @@ class MovingWindowSentenceClassifier:
 
     def __init__(self,
                  model_params: dict,
+                 corpus,
                  bod_line: str,
                  eod_line: str,
-                 corpus ,
                  **kwargs):
         """
         Instantiates classifier object, based on configuration in model_params.
@@ -111,22 +191,8 @@ class MovingWindowSentenceClassifier:
         :param corpus: list of strings used to feed text vectorization, typically all documents from train set
         :param kwargs: other parameters, passed directly to Vectorizer
         """
-        self._params = self._set_params(model_params)
-        self.bod_line = bod_line
-        self.eod_line = eod_line
-        self.vectorizer = tf.keras.layers.TextVectorization(
-            max_tokens=self._params['vocab_size'],
-            output_sequence_length=self._params['output_sequence_length'],
-            output_mode='int', name='Vectorizer', **kwargs)
-        self.vectorizer.adapt(corpus)
+        super().__init__(model_params=model_params, bod_line=bod_line, eod_line=eod_line, corpus=corpus, **kwargs)
         self.model = self.get_model()
-        self.train_texts = np.ndarray([])
-        self.train_labels = np.ndarray([])
-        self.validation_texts = np.ndarray([])
-        self.validation_labels = np.ndarray([])
-        self.test_texts = np.ndarray([])
-        self.test_labels = np.ndarray([])
-
 
     def _set_params(self, model_params: dict):
         """
@@ -178,64 +244,6 @@ class MovingWindowSentenceClassifier:
                 texts.append(sent)
             labels_.extend(labels)
         return np.squeeze(texts), np.stack(labels_)
-
-    def prepare_train_records(self, data: pd.DataFrame,
-                        doc_id: str = 'doc',
-                        line_index: str = 'idx',
-                        line: str = 'sentence',
-                        label: str = 'label',
-                        ):
-        """
-        Prepare windowed records for classification.
-        Each record is composed of <window_size> lines of text
-        The records are stored internally as train records and labels.
-
-        :param data: pandas dataframe containing documents
-        :param doc_id: name of column with document id
-        :param line_index: name of column with index of line within the document
-        :param line: name of column with line of the document
-        :param label: name of column with label for the line
-
-        """
-        self.train_texts, self.train_labels = self._prepare_records(data, doc_id, line_index, line, label)
-
-    def prepare_validation_records(self,
-                                   data: pd.DataFrame,
-                                   doc_id: str = 'doc',
-                                   line_index: str = 'idx',
-                                   line: str = 'sentence',
-                                   label: str = 'label'):
-        """
-        Prepare windowed records for classification.
-        Each record is composed of <window_size> lines of text
-        The records are stored internally as validation records and labels.
-
-        :param data: pandas dataframe containing documents
-        :param doc_id: name of column with document id
-        :param line_index: name of column with index of line within the document
-        :param line: name of column with line of the document
-        :param label: name of column with label for the line
-        """
-        self.validation_texts, self.validation_labels = self._prepare_records(data, doc_id, line_index, line, label)
-
-    def prepare_test_records(self,
-                             data: pd.DataFrame,
-                             doc_id: str = 'doc',
-                             line_index: str = 'idx',
-                             line: str = 'sentence',
-                             label: str = 'label'):
-        """
-        Prepare windowed records for classification.
-        Each record is composed of <window_size> lines of text
-        The records are stored internally as test records and labels.
-
-        :param data: pandas dataframe containing documents
-        :param doc_id: name of column with document id
-        :param line_index: name of column with index of line within the document
-        :param line: name of column with line of the document
-        :param label: name of column with label for the line
-        """
-        self.test_texts, self.test_labels = self._prepare_records(data, doc_id, line_index, line, label)
 
     def get_model(self)-> tf.keras.models.Model:
         """
@@ -295,7 +303,8 @@ class MovingWindowSentenceClassifier:
         """
         return getattr(self.model, name)
 
-class ContextBranchSentenceClassifier:
+
+class ContextBranchSentenceClassifier(BaseSentenceClassifier):
 
     """
         Sentence-level classifier with multiple input approach.
@@ -425,21 +434,8 @@ class ContextBranchSentenceClassifier:
         :param eod_line: specific line, added at the end of each document
         :param kwargs: other parameters, passed directly to Vectorizer
         """
-        self._params = self._set_params(model_params)
-        self.vectorizer = tf.keras.layers.TextVectorization(
-            max_tokens=self._params['vocab_size'],
-            output_sequence_length=self._params['output_sequence_length'],
-            output_mode='int', name='Vectorizer', **kwargs)
-        self.vectorizer.adapt(corpus)
-        self.bod_line = bod_line
-        self.eod_line = eod_line
+        super().__init__(model_params=model_params, corpus=corpus, bod_line=bod_line, eod_line=eod_line, **kwargs)
         self.model = self.get_model()
-        self.train_texts = np.ndarray([])
-        self.train_labels = np.ndarray([])
-        self.validation_texts = np.ndarray([])
-        self.validation_labels = np.ndarray([])
-        self.test_texts = np.ndarray([])
-        self.test_labels = np.ndarray([])
 
     def _set_params(self, model_params: dict):
         """
@@ -543,30 +539,6 @@ class ContextBranchSentenceClassifier:
             df.loc[df[doc_id]==doc, 'pred'] = _.shift(periods=1, fill_value=self.bod_line)
             df.loc[df[doc_id] == doc, 'post'] = _.shift(periods=-1, fill_value=self.eod_line)
         return df[['pred', line, 'post']].values, df[label].values
-
-    def prepare_train_records(self, data: pd.DataFrame,
-                        doc_id: str = 'doc',
-                        line_index: str = 'idx',
-                        line: str = 'sentence',
-                        label: str = 'label',
-                        ):
-        self.train_texts, self.train_labels = self._prepare_records(data, doc_id, line_index, line, label)
-
-    def prepare_validation_records(self,
-                                   data: pd.DataFrame,
-                                   doc_id: str = 'doc',
-                                   line_index: str = 'idx',
-                                   line: str = 'sentence',
-                                   label: str = 'label'):
-        self.validation_texts, self.validation_labels = self._prepare_records(data, doc_id, line_index, line, label)
-
-    def prepare_test_records(self,
-                             data: pd.DataFrame,
-                             doc_id: str = 'doc',
-                             line_index: str = 'idx',
-                             line: str = 'sentence',
-                             label: str = 'label'):
-        self.test_texts, self.test_labels = self._prepare_records(data, doc_id, line_index, line, label)
 
     def __getattr__(self, name):
         """
