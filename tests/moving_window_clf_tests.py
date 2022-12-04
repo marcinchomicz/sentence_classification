@@ -93,7 +93,7 @@ class MovinWindowSentenceClassifierTests(unittest.TestCase):
         texts = df['sentence'].values
         for window_size in [3, 5, 7]:
             model_params['window_size'] = window_size
-            for idx in range(len(train_subsets)):
+            for idx in range(1):
                 tf.keras.backend.clear_session()
                 clf = MovingWindowSentenceClassifier(
                     model_params=model_params,
