@@ -196,8 +196,11 @@ class MovingWindowSentenceClassifier:
         """
         self.train_texts, self.train_labels = self._prepare_records(data, doc_id, line_index, line, label)
 
-    def prepare_validation_records(self, data: pd.DataFrame,
-                                   doc_id: str = 'doc', line_index: str = 'idx', line: str = 'sentence',
+    def prepare_validation_records(self,
+                                   data: pd.DataFrame,
+                                   doc_id: str = 'doc',
+                                   line_index: str = 'idx',
+                                   line: str = 'sentence',
                                    label: str = 'label'):
         """
         Prepare windowed records for classification.
@@ -212,8 +215,11 @@ class MovingWindowSentenceClassifier:
         """
         self.validation_texts, self.validation_labels = self._prepare_records(data, doc_id, line_index, line, label)
 
-    def prepare_test_records(self, data: pd.DataFrame,
-                             doc_id: str = 'doc', line_index: str = 'idx', line: str = 'sentence',
+    def prepare_test_records(self,
+                             data: pd.DataFrame,
+                             doc_id: str = 'doc',
+                             line_index: str = 'idx',
+                             line: str = 'sentence',
                              label: str = 'label'):
         """
         Prepare windowed records for classification.
