@@ -1,0 +1,28 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+abstract class BaseSentenceClassifier{
+    {abstract} _set_params()
+    {abstract} _prepare_records()
+    {method} prepare_train_records()
+    {method} prepare_validation_records()
+    {method} prepare_test_recors()
+
+}
+
+class MovingWindowSentenceClassifier{
+    {method} __getattr__()
+    {method} _set_params()
+    {method} _prepare_records()
+    {method} get_model()
+}
+class ContextBranchSentenceClassifier{
+    {method} __getattr__()
+    {method} _set_params()
+    {method} _prepare_records()
+    {method} get_model()
+
+}
+BaseSentenceClassifier <|-- MovingWindowSentenceClassifier
+BaseSentenceClassifier <|-- ContextBranchSentenceClassifier
+@enduml
