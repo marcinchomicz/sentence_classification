@@ -1,0 +1,35 @@
+Model: "model"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ input_block (InputLayer)    [(None, 5, 45)]           0         
+                                                                 
+ embed (Embedding)           (None, 5, 45, 300)        2255400   
+                                                                 
+ embed_batch_norm (BatchNorm  (None, 5, 45, 300)       1200      
+ alization)                                                      
+                                                                 
+ time_distributed (TimeDistr  (None, 5, 43, 64)        57664     
+ ibuted)                                                         
+                                                                 
+ time_distributed_1 (TimeDis  (None, 5, 41, 64)        12352     
+ tributed)                                                       
+                                                                 
+ dropout (Dropout)           (None, 5, 41, 64)         0         
+                                                                 
+ time_distributed_2 (TimeDis  (None, 5, 2624)          0         
+ tributed)                                                       
+                                                                 
+ bidirectional (Bidirectiona  (None, 5, 256)           2115072   
+ l)                                                              
+                                                                 
+ bidirectional_1 (Bidirectio  (None, 128)              123648    
+ nal)                                                            
+                                                                 
+ dense (Dense)               (None, 3)                 387       
+                                                                 
+=================================================================
+Total params: 4,565,723
+Trainable params: 4,565,123
+Non-trainable params: 600
+_________________________________________________________________
