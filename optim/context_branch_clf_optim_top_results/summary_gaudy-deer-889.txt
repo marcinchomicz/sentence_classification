@@ -1,0 +1,67 @@
+Model: "model"
+__________________________________________________________________________________________________
+ Layer (type)                   Output Shape         Param #     Connected to                     
+==================================================================================================
+ input_pred (InputLayer)        [(None, 1)]          0           []                               
+                                                                                                  
+ input_sent (InputLayer)        [(None, 1)]          0           []                               
+                                                                                                  
+ Vectorizer (TextVectorization)  (None, 45)          0           ['input_pred[0][0]',             
+                                                                  'input_sent[0][0]',             
+                                                                  'input_post[0][0]']             
+                                                                                                  
+ input_post (InputLayer)        [(None, 1)]          0           []                               
+                                                                                                  
+ embed_sent (Embedding)         (None, 45, 150)      1127700     ['Vectorizer[1][0]']             
+                                                                                                  
+ embed_pred (Embedding)         (None, 45, 150)      1127700     ['Vectorizer[0][0]']             
+                                                                                                  
+ norm_sent (BatchNormalization)  (None, 45, 150)     600         ['embed_sent[0][0]']             
+                                                                                                  
+ embed_post (Embedding)         (None, 45, 150)      1127700     ['Vectorizer[2][0]']             
+                                                                                                  
+ norm_pred (BatchNormalization)  (None, 45, 150)     600         ['embed_pred[0][0]']             
+                                                                                                  
+ bilstm_sent (Bidirectional)    (None, 45, 64)       46848       ['norm_sent[0][0]']              
+                                                                                                  
+ norm_post (BatchNormalization)  (None, 45, 150)     600         ['embed_post[0][0]']             
+                                                                                                  
+ dense_0_pred (Dense)           (None, 45, 64)       9664        ['norm_pred[0][0]']              
+                                                                                                  
+ conv1d_sent (Conv1D)           (None, 43, 64)       12352       ['bilstm_sent[0][0]']            
+                                                                                                  
+ dense_0_post (Dense)           (None, 45, 64)       9664        ['norm_post[0][0]']              
+                                                                                                  
+ flatten (Flatten)              (None, 2880)         0           ['dense_0_pred[0][0]']           
+                                                                                                  
+ maxpool_sent (MaxPooling1D)    (None, 21, 64)       0           ['conv1d_sent[0][0]']            
+                                                                                                  
+ flatten_1 (Flatten)            (None, 2880)         0           ['dense_0_post[0][0]']           
+                                                                                                  
+ drop_pred (Dropout)            (None, 2880)         0           ['flatten[0][0]']                
+                                                                                                  
+ flatten_sent (Flatten)         (None, 1344)         0           ['maxpool_sent[0][0]']           
+                                                                                                  
+ drop_post (Dropout)            (None, 2880)         0           ['flatten_1[0][0]']              
+                                                                                                  
+ dense_1_pred (Dense)           (None, 64)           184384      ['drop_pred[0][0]']              
+                                                                                                  
+ dense_sent (Dense)             (None, 32)           43040       ['flatten_sent[0][0]']           
+                                                                                                  
+ dense_1_post (Dense)           (None, 64)           184384      ['drop_post[0][0]']              
+                                                                                                  
+ merger (Concatenate)           (None, 160)          0           ['dense_1_pred[0][0]',           
+                                                                  'dense_sent[0][0]',             
+                                                                  'dense_1_post[0][0]']           
+                                                                                                  
+ merger_dropout (Dropout)       (None, 160)          0           ['merger[0][0]']                 
+                                                                                                  
+ merged_dense (Dense)           (None, 64)           10304       ['merger_dropout[0][0]']         
+                                                                                                  
+ Output (Dense)                 (None, 3)            195         ['merged_dense[0][0]']           
+                                                                                                  
+==================================================================================================
+Total params: 3,885,735
+Trainable params: 3,884,835
+Non-trainable params: 900
+__________________________________________________________________________________________________
