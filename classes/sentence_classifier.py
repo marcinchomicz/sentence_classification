@@ -3,7 +3,8 @@ import pandas as pd
 import numpy as np
 from numpy.lib.stride_tricks import sliding_window_view
 from abc import ABC,  abstractmethod
-
+from transformers import TFBertModel, BertConfig, AutoTokenizer
+from datasets import Dataset
 
 class ErrorWindowSizeToSmall(Exception):
     """ Exception raised when window size is smaller than 3 """
@@ -546,3 +547,54 @@ class ContextBranchSentenceClassifier(BaseSentenceClassifier):
         Any method of tf.keras.models.Model instantiated as self.model can be used transparently on the class instance
         """
         return getattr(self.model, name)
+
+
+class BertTokenizer:
+    ''' Tokenizer for BERT-compatibile transformer model '''
+
+    def __init__(self, model_params: dict, branch_name: str):
+        """
+        Instantiate Tokenizer on the basis of model_params settings
+
+        :param model_params: a dictionary with parameters, including tokenizer parameters.
+
+        At least The following structure of model_params must be provided:
+                model_params[branch_name]:
+                    {
+                    'base_model':
+                    'max_sequence_length':
+                    'name_suffix':
+                    'tokenizer': {
+                        'padding':
+                        'truncation':
+                    }
+
+        :param branch_name: the name of the branch the tokenizer is built for.
+        Corresponds to model_params key representing branch settings.
+        """
+        super(BertTokenizer, self).__init__()
+        self.name = branch_name
+        self.model_params = model_params
+        self.branch_params = model_params[branch_name]
+        self.tokenizer = AutoTokenizer.from_pretrained(self.branch_params['base_model'])
+
+    def tokenize(self, texts):
+        """
+        Perform provided texts tokenization
+
+        :param texts: list of str to be tokenized
+        :return: a dictionary fo encoded representation
+        """
+        tokenized_texts = self.tokenizer(
+            texts,
+            return_tensors='tf',
+            add_special_tokens=True,
+            padding=self.branch_params['tokenizer']['padding'],
+            truncation=self.branch_params['tokenizer']['truncation'],
+            max_length=self.branch_params['max_sequence_length'],
+            return_token_type_ids=True,
+            return_attention_mask=True
+        ).data
+        tokenized_texts = {f"{k}_{self.branch_params['name_suffix']}": tokenized_texts[k] for k in tokenized_texts}
+        return tokenized_texts
+
